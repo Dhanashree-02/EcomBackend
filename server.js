@@ -6,16 +6,24 @@ const cors = require('cors');
 
 dotenv.config();
 
+// Routers
 const productRoutes = require('./src/router/productRoutes.js'); // Import routes
+const categoryRoutes = require('./src/router/categoriesRouter.js'); // Import routes
+
+
 
 const app = express();
+
+// Routes
+app.use('/api/products', productRoutes);
+app.use('/api/categories', categoryRoutes);
 
 // Middleware
 app.use(express.json());
 app.use(cors());
 
-// Routes
-app.use('/api/products', productRoutes);
+
+
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI, {
