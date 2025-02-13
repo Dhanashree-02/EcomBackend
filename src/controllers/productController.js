@@ -1,141 +1,106 @@
-const Product = require('../modals/productModal.js');
-const cloudinary = require('../utils/cloudinary.js');
+const Product = require('../modals/productModal.js'); // Import the product model
 
-// Upload multiple images and create product
-const uploadProductImages = async (req, res) => {
+// ✅ Upload images to Cloudinary & Save product details
+const uploadProduct = async (req, res) => {
     try {
-        if (!req.files || req.files.length === 0) {
-            return res.status(400).json({ message: "No files uploaded" });
+        console.log('Received files:', req.files); // Debugging: Check if multiple files are received
+
+        if (!req.files || req.files.length === 0) { 
+            return res.status(400).json({ message: "No images uploaded" });
         }
+
+        // Extract image URLs correctly
+        const imageUrls = req.files.map(file => file.path); 
+
+        console.log('Image URLs:', imageUrls); // Debugging: Ensure all images are processed
 
         const { title, description, price, categories, star } = req.body;
-        if (!title || !description || !price || !categories || !star) {
-            return res.status(400).json({ message: "All fields are required" });
-        }
 
-        // Upload images to Cloudinary
-        const uploadedImages = await Promise.all(
-            req.files.map(async (file) => {
-                const result = await new Promise((resolve, reject) => {
-                    const stream = cloudinary.uploader.upload_stream(
-                        { folder: 'products' },
-                        (error, result) => {
-                            if (error) return reject(error);
-                            resolve(result.secure_url);
-                        }
-                    );
-                    stream.end(file.buffer);
-                });
-
-                return result;
-            })
-        );
-
-        // Save product
         const newProduct = new Product({
+            images: imageUrls, 
             title,
             description,
             price,
             categories,
-            star,
-            images: uploadedImages
+            star
         });
 
         await newProduct.save();
-
         res.status(201).json({ message: 'Product uploaded successfully', product: newProduct });
+
     } catch (error) {
-        res.status(500).json({ message: 'Error uploading images', error: error.message });
+        console.error('Error uploading product:', error);
+        res.status(500).json({ message: 'Server error', error });
     }
 };
 
-// Get all products
+
+// ✅ Get All Products
 const getAllProducts = async (req, res) => {
     try {
         const products = await Product.find();
         res.status(200).json(products);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching products', error: error.message });
+        res.status(500).json({ message: 'Server error', error });
     }
 };
 
-// Get product by ID
+// ✅ Get Product by ID
 const getProductById = async (req, res) => {
     try {
         const product = await Product.findById(req.params.id);
         if (!product) {
-            return res.status(404).json({ message: "Product not found" });
+            return res.status(404).json({ message: 'Product not found' });
         }
         res.status(200).json(product);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching product', error: error.message });
+        res.status(500).json({ message: 'Server error', error });
     }
 };
 
-// Update product by ID
+// ✅ Update Product by ID
 const updateProduct = async (req, res) => {
     try {
         const { title, description, price, categories, star } = req.body;
 
-        const product = await Product.findById(req.params.id);
-        if (!product) {
-            return res.status(404).json({ message: "Product not found" });
-        }
+        const updatedData = { title, description, price, categories, star };
 
-        // If new images are uploaded, update images
-        let uploadedImages = product.images;
         if (req.files && req.files.length > 0) {
-            uploadedImages = await Promise.all(
-                req.files.map(async (file) => {
-                    const result = await new Promise((resolve, reject) => {
-                        const stream = cloudinary.uploader.upload_stream(
-                            { folder: 'products' },
-                            (error, result) => {
-                                if (error) return reject(error);
-                                resolve(result.secure_url);
-                            }
-                        );
-                        stream.end(file.buffer);
-                    });
-
-                    return result;
-                })
-            );
+            updatedData.images = req.files.map(file => file.path || file.url);
         }
 
-        // Update product details
-        product.title = title || product.title;
-        product.description = description || product.description;
-        product.price = price || product.price;
-        product.categories = categories || product.categories;
-        product.star = star || product.star;
-        product.images = uploadedImages;
+        const updatedProduct = await Product.findByIdAndUpdate(req.params.id, updatedData, { new: true });
 
-        await product.save();
+        if (!updatedProduct) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
 
-        res.status(200).json({ message: "Product updated successfully", product });
+        res.status(200).json({ message: 'Product updated successfully', product: updatedProduct });
     } catch (error) {
-        res.status(500).json({ message: 'Error updating product', error: error.message });
+        res.status(500).json({ message: 'Server error', error });
     }
 };
 
-// Delete product by ID
+// ✅ Delete Product by ID
 const deleteProduct = async (req, res) => {
     try {
-        const product = await Product.findByIdAndDelete(req.params.id);
-        if (!product) {
-            return res.status(404).json({ message: "Product not found" });
+        const deletedProduct = await Product.findByIdAndDelete(req.params.id);
+
+        if (!deletedProduct) {
+            return res.status(404).json({ message: 'Product not found' });
         }
-        res.status(200).json({ message: "Product deleted successfully" });
+
+        res.status(200).json({ message: 'Product deleted successfully' });
     } catch (error) {
-        res.status(500).json({ message: 'Error deleting product', error: error.message });
+        res.status(500).json({ message: 'Server error', error });
     }
 };
 
-module.exports = {
-    uploadProductImages,
-    getAllProducts,
-    getProductById,
-    updateProduct,
-    deleteProduct
+// ✅ Export controllers
+module.exports = { 
+    uploadProduct, 
+    getAllProducts, 
+    getProductById, 
+    updateProduct, 
+    deleteProduct 
 };

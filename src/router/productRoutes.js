@@ -1,19 +1,20 @@
 const express = require('express');
 const router = express.Router();
-const upload = require('../middlewares/multer.middleware'); 
-const { 
-    uploadProductImages, 
-    getAllProducts, 
-    getProductById, 
-    updateProduct, 
-    deleteProduct 
-} = require('../controllers/productController.js');
+const upload = require('../middlewares/multer.middleware'); // Import updated middleware
+const { uploadProduct, getAllProducts, getProductById, updateProduct, deleteProduct } = require('../controllers/productController');
 
-// Routes
-router.post('/upload', upload.array('images', 5), uploadProductImages); 
-router.get('/products', getAllProducts);
-router.get('/products/:id', getProductById);
-router.put('/products/:id', upload.array('images', 5), updateProduct);
-router.delete('/products/:id', deleteProduct);
+// ✅ Upload Multiple Images & Save Product
+router.post('/upload', upload.array('images', 10), uploadProduct);
+// ✅ Get All Products
+router.get('/', getAllProducts);
+
+// ✅ Get Product by ID
+router.get('/:id', getProductById);
+
+// ✅ Update Product (with optional images)
+router.put('/:id', upload.array('images', 5), updateProduct);
+
+// ✅ Delete Product
+router.delete('/:id', deleteProduct);
 
 module.exports = router;

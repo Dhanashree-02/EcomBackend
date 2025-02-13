@@ -1,42 +1,44 @@
-const Categories = require("../modals/categoriesModal.js")
-const cloudinary = require('../utils/cloudinary.js');
+const Categories = require("../modals/categoriesModal.js");
+const cloudinary = require("../config/cloudinary.js");
 
-// Upload Image Function
-const uploadCategoriesImage = async (req, res) => {
+// Upload Images to Cloudinary
+const uploadImages = async (files) => {
+    const uploadPromises = files.map(file => {
+        return cloudinary.uploader.upload_stream({ resource_type: "image" }, (error, result) => {
+            if (error) {
+                throw new Error("Image upload failed");
+            }
+            return result.secure_url;
+        }).end(file.buffer);
+    });
+    return await Promise.all(uploadPromises);
+};
+
+// Create Category Controller
+const createCategory = async (req, res) => {
     try {
-        if (!req.file) {
-            return res.status(400).json({ message: "No file uploaded" });
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ error: "At least one image is required" });
         }
 
-        // Upload image to Cloudinary in 'Categories' folder
-        const result = await cloudinary.uploader.upload(req.file.path, {
-            folder: 'Categories'
-        });
-
-
-        // Validate required fields
+        const imageUrls = await uploadImages(req.files);
+        
         const { title, description, price, categories, star } = req.body;
-
-        if (!title || !description || !price || !categories || !star) {
-            return res.status(400).json({ message: "All fields are required" });
-        }
-
-        // Save image URL and Categories details
-        const newCategories = new Categories({ 
-            title, 
-            description, 
-            price, 
-            categories, 
-            star, 
-            image: result.secure_url 
+        
+        const newCategory = new Categories({
+            images: imageUrls,
+            title,
+            description,
+            price,
+            categories,
+            star
         });
-
-        await newCategories.save();
-
-        res.status(201).json({ message: 'Image uploaded successfully', Categories: newCategories });
+        
+        await newCategory.save();
+        res.status(201).json({ message: "Category created successfully", category: newCategory });
     } catch (error) {
-        res.status(500).json({ message: 'Error uploading image', error: error.message });
+        res.status(500).json({ error: error.message });
     }
 };
 
-module.exports = { uploadCategoriesImage };
+module.exports = { createCategory };

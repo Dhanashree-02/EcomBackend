@@ -6,6 +6,7 @@ const app = express();
 
 connectDB();
 app.use(express.json());
-app.use('/api', routes);
+// app.use('/api', routes);
+
 
 module.exports = app;
