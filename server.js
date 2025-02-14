@@ -9,6 +9,7 @@ dotenv.config();
 // Routers
 const productRoutes = require('./src/router/productRoutes.js'); // Import routes
 const categoryRoutes = require('./src/router/categoriesRouter.js'); // Import routes
+const mainCategoriesRouter = require('./src/router/mainCategoriesRouter.js'); // Import routes
 
 
 
@@ -17,11 +18,12 @@ const app = express();
 // Routes
 app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/maincategories', mainCategoriesRouter);
+
 
 // Middleware
 app.use(express.json());
 app.use(cors());
-
 
 
 

@@ -1,36 +1,110 @@
-const Categories = require("../modals/mainCategoriesModal.js");
-const cloudinary = require("../utils/cloudinary.js");
+const MainCategories = require('../modals/mainCategoriesModal.js');
+const cloudinary = require('../utils/cloudinary.js');
 
-const createCategory = async (req, res) => {
+// Create a new main category
+const createMainCategory = async (req, res) => {
     try {
-        if (!req.files || req.files.length === 0) {
-            return res.status(400).json({ error: "Please upload at least one image." });
+        let images = [];
+
+        if (req.files) {
+            for (const file of req.files) {
+                const result = await cloudinary.uploader.upload(file.path);
+                images.push(result.secure_url);
+            }
         }
 
-        // Upload images to Cloudinary and store URLs
-        const imageUrls = await Promise.all(
-            req.files.map(async (file) => {
-                const result = await cloudinary.uploader.upload(file.path, { folder: "categories" });
-                return result.secure_url;
-            })
-        );
-
-        // Create category with image URLs
-        const newCategory = new Categories({
-            images: imageUrls, // Store only URLs, not streams
+        const mainCategory = new MainCategories({
+            images,
             title: req.body.title,
             description: req.body.description,
             price: req.body.price,
             categories: req.body.categories,
-            star: req.body.star,
+            star: req.body.star
         });
 
-        await newCategory.save();
-        res.status(201).json({ message: "Category created successfully", category: newCategory });
+        await mainCategory.save();
+        res.status(201).json({ message: "Category created successfully", data: mainCategory });
     } catch (error) {
-        console.error("Error creating category:", error);
         res.status(500).json({ error: error.message });
     }
 };
 
-module.exports = { createCategory };
+// Get all main categories
+const getAllMainCategories = async (req, res) => {
+    try {
+        const categories = await MainCategories.find();
+        res.status(200).json(categories);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Get a category by ID
+const getMainCategoryById = async (req, res) => {
+    try {
+        const category = await MainCategories.findById(req.params.id);
+        if (!category) {
+            return res.status(404).json({ message: "Category not found" });
+        }
+        res.status(200).json(category);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Update a category by ID
+const updateMainCategory = async (req, res) => {
+    try {
+        let images = [];
+
+        if (req.files) {
+            for (const file of req.files) {
+                const result = await cloudinary.uploader.upload(file.path);
+                images.push(result.secure_url);
+            }
+        }
+
+        const updatedCategory = await MainCategories.findByIdAndUpdate(
+            req.params.id,
+            {
+                images: images.length > 0 ? images : req.body.images,
+                title: req.body.title,
+                description: req.body.description,
+                price: req.body.price,
+                categories: req.body.categories,
+                star: req.body.star
+            },
+            { new: true }
+        );
+
+        if (!updatedCategory) {
+            return res.status(404).json({ message: "Category not found" });
+        }
+
+        res.status(200).json({ message: "Category updated successfully", data: updatedCategory });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Delete a category by ID
+const deleteMainCategory = async (req, res) => {
+    try {
+        const deletedCategory = await MainCategories.findByIdAndDelete(req.params.id);
+        if (!deletedCategory) {
+            return res.status(404).json({ message: "Category not found" });
+        }
+        res.status(200).json({ message: "Category deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Export all functions
+module.exports = {
+    createMainCategory,
+    getAllMainCategories,
+    getMainCategoryById,
+    updateMainCategory,
+    deleteMainCategory
+};
