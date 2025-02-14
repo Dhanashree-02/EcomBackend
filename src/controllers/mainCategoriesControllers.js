@@ -1,4 +1,4 @@
-const MainCategories = require('../modals/mainCategoriesModal.js');
+const MainCategories = require('../modals/orderModel.js');
 const cloudinary = require('../utils/cloudinary.js');
 
 // Create a new main category
